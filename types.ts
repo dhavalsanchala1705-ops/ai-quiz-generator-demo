@@ -23,20 +23,29 @@ export interface Question {
 
 export interface QuizSession {
   id: string;
+  userId: string;
   subject: string;
   chapter: string;
   difficulty: Difficulty;
   questions: Question[];
-  responses: Record<number, string | number>; // index: optionIndex or string for FITB
+  responses: Record<number, string | number>;
   score: number;
   completedAt?: number;
   createdAt: number;
 }
 
-export interface UserProfile {
+export interface User {
   id: string;
   name: string;
+  email: string;
+  password?: string;
+  lastDifficulty: Difficulty;
+  createdAt: number;
+}
+
+export interface DashboardStats {
   totalQuizzes: number;
   averageScore: number;
-  lastDifficulty: Difficulty;
+  masteredSubjects: string[];
+  recentSessions: QuizSession[];
 }
