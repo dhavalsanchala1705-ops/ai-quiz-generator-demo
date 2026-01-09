@@ -8,6 +8,7 @@ import QuizSetup from './components/QuizSetup';
 import QuestionCard from './components/QuestionCard';
 import QuizResult from './components/QuizResult';
 import ProgressBar from './components/ProgressBar';
+import PrivacyPolicy from './components/PrivacyPolicy';
 import { generateQuizQuestions } from './services/geminiService';
 import {
   getCurrentUser,
@@ -22,7 +23,8 @@ enum AppView {
   DASHBOARD = 'dashboard',
   SETUP = 'setup',
   QUIZ = 'quiz',
-  RESULT = 'result'
+  RESULT = 'result',
+  PRIVACY = 'privacy'
 }
 
 const App: React.FC = () => {
@@ -130,7 +132,9 @@ const App: React.FC = () => {
       />
 
       <main className="max-w-4xl mx-auto px-4 py-8">
-        {view === AppView.AUTH && <Auth onAuthSuccess={handleAuthSuccess} />}
+        {view === AppView.AUTH && <Auth onAuthSuccess={handleAuthSuccess} onShowPrivacy={() => setView(AppView.PRIVACY)} />}
+
+        {view === AppView.PRIVACY && <PrivacyPolicy onBack={() => setView(AppView.AUTH)} />}
 
         {view === AppView.DASHBOARD && user && (
           <Dashboard

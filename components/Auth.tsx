@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { login, signup } from '../services/storageService';
 import { User } from '../types';
-import { Eye, EyeOff, Loader2, ArrowLeft, Mail, CheckCircle } from 'lucide-react';
+import { Eye, EyeOff, Loader2, ArrowLeft, Mail, CheckCircle, Lock, ShieldCheck, Check, X, RefreshCw } from 'lucide-react';
 
 interface AuthProps {
   onAuthSuccess: (user: User) => void;
+  onShowPrivacy?: () => void;
 }
 
-const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
+const Auth: React.FC<AuthProps> = ({ onAuthSuccess, onShowPrivacy }) => {
   // Mode states
   const [isLogin, setIsLogin] = useState(true);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
@@ -18,6 +19,7 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
+  const [captchaInput, setCaptchaInput] = useState('');
   const [error, setError] = useState('');
 
   // UI states
@@ -30,6 +32,27 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
+  const [captchaError, setCaptchaError] = useState('');
+
+  // Password Rules State
+  const [passwordRules, setPasswordRules] = useState({
+    length: false,
+    upper: false,
+    lower: false,
+    number: false,
+    special: false
+  });
+
+  // Captcha State
+  const [captcha, setCaptcha] = useState({ num1: 0, num2: 0, answer: 0 });
+
+  const generateCaptcha = () => {
+    const num1 = Math.floor(Math.random() * 10);
+    const num2 = Math.floor(Math.random() * 10);
+    setCaptcha({ num1, num2, answer: num1 + num2 });
+    setCaptchaInput('');
+    setCaptchaError('');
+  };
 
   useEffect(() => {
     const savedEmail = localStorage.getItem('remembered_email');
@@ -37,7 +60,9 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
       setEmail(savedEmail);
       setRememberMe(true);
     }
+    generateCaptcha();
   }, []);
+
 
   const validateEmail = (val: string) => {
     if (!val) {
@@ -53,14 +78,35 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
     return true;
   };
 
+  const checkPasswordStrength = (val: string) => {
+    const rules = {
+      length: val.length >= 8,
+      upper: /[A-Z]/.test(val),
+      lower: /[a-z]/.test(val),
+      number: /[0-9]/.test(val),
+      special: /[!@#$%^&*(),.?":{}|<>]/.test(val),
+    };
+    setPasswordRules(rules);
+    return Object.values(rules).every(Boolean);
+  };
+
   const validatePassword = (val: string) => {
     if (!val) {
       setPasswordError('Password is required');
       return false;
     }
-    if (val.length < 6) {
-      setPasswordError('Password must be at least 6 characters');
-      return false;
+    if (isLogin) {
+      // Less strict on login, just check length
+      if (val.length < 1) {
+        setPasswordError('Password is required');
+        return false;
+      }
+    } else {
+      // Strict on signup
+      if (!checkPasswordStrength(val)) {
+        setPasswordError('Password must meet all requirements');
+        return false;
+      }
     }
     setPasswordError('');
     return true;
@@ -88,6 +134,9 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setPassword(val);
+    if (!isLogin) {
+      checkPasswordStrength(val);
+    }
     validatePassword(val);
     if (confirmPassword) {
       validateConfirmPassword(confirmPassword, val);
@@ -112,6 +161,10 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
     // Signup Validation
     if (!isLogin && !isForgotPassword) {
       if (!name || !password || passwordError) return false;
+      if (!captchaInput || parseInt(captchaInput) !== captcha.answer) {
+        setCaptchaError('Incorrect captcha answer');
+        return false;
+      }
       if (!confirmPassword || confirmPasswordError) return false;
     }
 
@@ -262,6 +315,10 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
   return (
     <div className="max-w-md mx-auto mt-12 bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 transition-colors">
       <div className="text-center mb-8">
+        <div className="flex justify-center items-center gap-2 mb-4 text-green-600 dark:text-green-400 text-xs font-semibold bg-green-50 dark:bg-green-900/20 py-1 px-3 rounded-full w-fit mx-auto border border-green-100 dark:border-green-800">
+          <Lock size={12} />
+          <span>Secure Connection</span>
+        </div>
         <img src="/logo.png" alt="FundaMinds Logo" className="w-24 h-24 mx-auto mb-4 object-contain" />
         <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{isLogin ? 'Welcome Back' : 'Create Account'}</h2>
         <p className="text-slate-500 dark:text-slate-400 mt-2">{isLogin ? 'Sign in to continue your learning journey' : 'Start personalizing your education today'}</p>
@@ -316,6 +373,32 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
             </button>
           </div>
           {passwordError && <p className="text-red-500 text-xs mt-1">{passwordError}</p>}
+
+          {!isLogin && (
+            <div className="mt-2 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg text-xs space-y-1 border border-slate-100 dark:border-slate-700">
+              <p className="font-semibold text-slate-500 mb-2">Password Requirements:</p>
+              <div className={`flex items-center gap-2 ${passwordRules.length ? 'text-green-600' : 'text-slate-400'}`}>
+                {passwordRules.length ? <Check size={12} /> : <div className="w-3 h-3 rounded-full border border-slate-300" />}
+                <span>At least 8 characters</span>
+              </div>
+              <div className={`flex items-center gap-2 ${passwordRules.upper ? 'text-green-600' : 'text-slate-400'}`}>
+                {passwordRules.upper ? <Check size={12} /> : <div className="w-3 h-3 rounded-full border border-slate-300" />}
+                <span>One uppercase letter</span>
+              </div>
+              <div className={`flex items-center gap-2 ${passwordRules.lower ? 'text-green-600' : 'text-slate-400'}`}>
+                {passwordRules.lower ? <Check size={12} /> : <div className="w-3 h-3 rounded-full border border-slate-300" />}
+                <span>One lowercase letter</span>
+              </div>
+              <div className={`flex items-center gap-2 ${passwordRules.number ? 'text-green-600' : 'text-slate-400'}`}>
+                {passwordRules.number ? <Check size={12} /> : <div className="w-3 h-3 rounded-full border border-slate-300" />}
+                <span>One number</span>
+              </div>
+              <div className={`flex items-center gap-2 ${passwordRules.special ? 'text-green-600' : 'text-slate-400'}`}>
+                {passwordRules.special ? <Check size={12} /> : <div className="w-3 h-3 rounded-full border border-slate-300" />}
+                <span>One special character</span>
+              </div>
+            </div>
+          )}
         </div>
 
         {!isLogin && (
@@ -343,8 +426,40 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
           </div>
         )}
 
+
+        {!isLogin && (
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Security Check</label>
+            <div className="flex items-center gap-3">
+              <div className="bg-slate-100 dark:bg-slate-700 px-4 py-3 rounded-lg font-mono font-bold text-slate-600 dark:text-slate-200 tracking-wider">
+                {captcha.num1} + {captcha.num2} = ?
+              </div>
+              <button
+                type="button"
+                onClick={generateCaptcha}
+                className="p-3 text-slate-400 hover:text-indigo-600 transition-colors"
+                title="Refresh Captcha"
+              >
+                <RefreshCw size={20} />
+              </button>
+              <input
+                type="number"
+                value={captchaInput}
+                onChange={(e) => {
+                  setCaptchaInput(e.target.value);
+                  if (parseInt(e.target.value) === captcha.answer) {
+                    setCaptchaError('');
+                  }
+                }}
+                className={`w-20 p-3 border rounded-lg focus:ring-2 outline-none bg-white dark:bg-slate-900 text-slate-900 dark:text-white transition-colors text-center font-bold ${captchaError ? 'border-red-500 focus:ring-red-200' : 'border-slate-200 dark:border-slate-600 focus:ring-indigo-500'}`}
+                placeholder="Answer"
+              />
+            </div>
+            {captchaError && <p className="text-red-500 text-xs mt-1">{captchaError}</p>}
+          </div>
+        )}
         <div className="flex items-center justify-between">
-          <label className="flex items-center space-x-2 cursor-pointer">
+          <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
               checked={rememberMe}
@@ -367,9 +482,11 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
           )}
         </div>
 
-        {error && <div className="p-3 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-sm rounded-lg flex items-center">
-          <span className="mr-2">⚠️</span> {error}
-        </div>}
+        {
+          error && <div className="p-3 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-sm rounded-lg flex items-center">
+            <span className="mr-2">⚠️</span> {error}
+          </div>
+        }
 
         <button
           type="submit"
@@ -388,7 +505,7 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
             isLogin ? 'Login' : 'Sign Up'
           )}
         </button>
-      </form>
+      </form >
 
       <div className="mt-6 flex items-center">
         <div className="flex-grow border-t border-slate-200 dark:border-slate-700"></div>
@@ -462,7 +579,16 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
           {isLogin ? 'Sign Up' : 'Login'}
         </button>
       </div>
-    </div>
+
+      <div className="mt-4 text-center">
+        <button
+          onClick={onShowPrivacy}
+          className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:underline transition-colors"
+        >
+          Privacy Policy
+        </button>
+      </div>
+    </div >
   );
 };
 
