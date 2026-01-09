@@ -35,22 +35,22 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-12 bg-white p-8 rounded-2xl shadow-xl border border-slate-100">
+    <div className="max-w-md mx-auto mt-12 bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 transition-colors">
       <div className="text-center mb-8">
         <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-bold text-3xl shadow-lg mx-auto mb-4">
-          A
+          F
         </div>
-        <h2 className="text-2xl font-bold text-slate-900">{isLogin ? 'Welcome Back' : 'Create Account'}</h2>
-        <p className="text-slate-500 mt-2">{isLogin ? 'Sign in to continue your learning journey' : 'Start personalizing your education today'}</p>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{isLogin ? 'Welcome Back' : 'Create Account'}</h2>
+        <p className="text-slate-500 dark:text-slate-400 mt-2">{isLogin ? 'Sign in to continue your learning journey' : 'Start personalizing your education today'}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {!isLogin && (
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">Full Name</label>
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Full Name</label>
             <input
               type="text"
-              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+              className="w-full p-3 border dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white dark:bg-slate-900 text-slate-900 dark:text-white transition-colors"
               placeholder="John Doe"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -58,10 +58,10 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
           </div>
         )}
         <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-1">Email Address</label>
+          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Email Address</label>
           <input
             type="email"
-            className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+            className="w-full p-3 border dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white dark:bg-slate-900 text-slate-900 dark:text-white transition-colors"
             placeholder="student@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -73,17 +73,17 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
 
         <button
           type="submit"
-          className="w-full py-3 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
+          className="w-full py-3 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 dark:shadow-none"
         >
           {isLogin ? 'Login' : 'Sign Up'}
         </button>
       </form>
 
-      <div className="mt-6 text-center text-sm text-slate-500">
+      <div className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
         {isLogin ? "Don't have an account?" : "Already have an account?"}{' '}
         <button
           onClick={() => setIsLogin(!isLogin)}
-          className="text-indigo-600 font-bold hover:underline"
+          className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
         >
           {isLogin ? 'Sign Up' : 'Login'}
         </button>

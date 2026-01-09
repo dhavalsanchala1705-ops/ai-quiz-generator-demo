@@ -122,7 +122,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 dark:text-slate-100 transition-colors duration-300">
       <Navbar
         user={user}
         onLogout={handleLogout}
@@ -176,8 +176,8 @@ const App: React.FC = () => {
         )}
       </main>
 
-      <footer className="mt-20 py-10 text-center text-slate-400 text-sm border-t border-slate-200">
-        <p>Adaptive AI Quiz Engine &copy; {new Date().getFullYear()}</p>
+      <footer className="mt-20 py-10 text-center text-slate-400 dark:text-slate-500 text-sm border-t border-slate-200 dark:border-slate-800">
+        <p>FundaMinds AI Engine &copy; {new Date().getFullYear()}</p>
         <div className="mt-2 flex justify-center gap-4 text-xs font-medium uppercase tracking-widest text-slate-300">
           <span>Persisted DB: LocalStorage</span>
           <span>•</span>

@@ -28,17 +28,17 @@ const QuizSetup: React.FC<QuizSetupProps> = ({ onStart, isLoading, suggestedDiff
   ];
 
   return (
-    <div className="max-w-xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+    <div className="max-w-xl mx-auto bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-8 transition-colors">
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-slate-800">New Quiz</h2>
-        <p className="text-slate-500 mt-2">Personalize your learning path with AI</p>
+        <h2 className="text-3xl font-bold text-slate-800 dark:text-white">New Quiz</h2>
+        <p className="text-slate-500 dark:text-slate-400 mt-2">Personalize your learning path with AI</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-2">Subject</label>
-          <select 
-            className="w-full p-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Subject</label>
+          <select
+            className="w-full p-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
             required
@@ -51,11 +51,11 @@ const QuizSetup: React.FC<QuizSetupProps> = ({ onStart, isLoading, suggestedDiff
 
         {subject === 'Other' && (
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Custom Subject</label>
-            <input 
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Custom Subject</label>
+            <input
               type="text"
               placeholder="e.g., Quantum Physics"
-              className="w-full p-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+              className="w-full p-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
               onChange={(e) => setSubject(e.target.value)}
               required
             />
@@ -63,11 +63,11 @@ const QuizSetup: React.FC<QuizSetupProps> = ({ onStart, isLoading, suggestedDiff
         )}
 
         <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-2">Chapter / Topic</label>
-          <input 
+          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Chapter / Topic</label>
+          <input
             type="text"
             placeholder="e.g., Photosynthesis or Calculus I"
-            className="w-full p-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+            className="w-full p-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
             value={chapter}
             onChange={(e) => setChapter(e.target.value)}
             required
@@ -75,34 +75,33 @@ const QuizSetup: React.FC<QuizSetupProps> = ({ onStart, isLoading, suggestedDiff
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-2">Difficulty</label>
+          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Difficulty</label>
           <div className="grid grid-cols-3 gap-3">
             {difficulties.map((d) => (
               <button
                 key={d.value}
                 type="button"
                 onClick={() => setDifficulty(d.value)}
-                className={`p-3 rounded-lg border-2 text-center transition-all ${
-                  difficulty === d.value 
-                    ? 'border-indigo-600 bg-indigo-50 font-bold' 
-                    : 'border-slate-100 bg-slate-50 text-slate-400'
-                }`}
+                className={`p-3 rounded-lg border-2 text-center transition-all ${difficulty === d.value
+                    ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 font-bold'
+                    : 'border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-400 dark:text-slate-500'
+                  }`}
               >
-                <span className={difficulty === d.value ? d.color : ''}>{d.label}</span>
+                <span className={difficulty === d.value ? (d.value === Difficulty.HARD ? 'text-red-600 dark:text-red-400' : d.value === Difficulty.MEDIUM ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400') : ''}>{d.label}</span>
               </button>
             ))}
           </div>
           {difficulty !== suggestedDifficulty && (
-             <p className="text-xs text-slate-400 mt-2 italic">
-               Note: System suggested {suggestedDifficulty} based on your last performance.
-             </p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-2 italic">
+              Note: System suggested {suggestedDifficulty} based on your last performance.
+            </p>
           )}
         </div>
 
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold text-lg hover:bg-indigo-700 disabled:opacity-50 shadow-lg shadow-indigo-100 transition-all flex items-center justify-center gap-2"
+          className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold text-lg hover:bg-indigo-700 disabled:opacity-50 shadow-lg shadow-indigo-100 dark:shadow-none transition-all flex items-center justify-center gap-2"
         >
           {isLoading ? (
             <>
