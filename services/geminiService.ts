@@ -63,7 +63,15 @@ export const generateQuizQuestions = async (
   });
 
   try {
-    let rawJson = response.text().trim();
+    let rawJson = response.text?.trim();
+    if (!rawJson) {
+      if (response.data && typeof response.data === 'object') { // Fallback if direct text isn't available
+        rawJson = JSON.stringify(response.data);
+      } else {
+        throw new Error("Empty response from AI");
+      }
+    }
+
     // Remove markdown code blocks if present (common behavior of Gemini)
     if (rawJson.startsWith("```")) {
       rawJson = rawJson.replace(/^```(json)?\n?/, "").replace(/\n?```$/, "");
@@ -75,7 +83,7 @@ export const generateQuizQuestions = async (
     }));
   } catch (error) {
     console.error("Failed to parse AI response:", error);
-    console.log("Raw Response was:", response.text());
+    console.log("Raw Response was:", response.text);
     throw new Error("The AI returned an invalid response format. Please try again.");
   }
 };
