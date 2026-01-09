@@ -63,7 +63,11 @@ export const generateQuizQuestions = async (
   });
 
   try {
-    const rawJson = response.text.trim();
+    let rawJson = response.text().trim();
+    // Remove markdown code blocks if present (common behavior of Gemini)
+    if (rawJson.startsWith("```")) {
+      rawJson = rawJson.replace(/^```(json)?\n?/, "").replace(/\n?```$/, "");
+    }
     const questions: any[] = JSON.parse(rawJson);
     return questions.map((q, idx) => ({
       ...q,
@@ -71,6 +75,7 @@ export const generateQuizQuestions = async (
     }));
   } catch (error) {
     console.error("Failed to parse AI response:", error);
+    console.log("Raw Response was:", response.text());
     throw new Error("The AI returned an invalid response format. Please try again.");
   }
 };
