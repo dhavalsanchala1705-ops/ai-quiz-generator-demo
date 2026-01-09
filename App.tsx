@@ -9,12 +9,12 @@ import QuestionCard from './components/QuestionCard';
 import QuizResult from './components/QuizResult';
 import ProgressBar from './components/ProgressBar';
 import { generateQuizQuestions } from './services/geminiService';
-import { 
-  getCurrentUser, 
-  logout, 
-  getDashboardStats, 
+import {
+  getCurrentUser,
+  logout,
+  getDashboardStats,
   saveQuizSession,
-  getSuggestedDifficulty 
+  getSuggestedDifficulty
 } from './services/storageService';
 
 enum AppView {
@@ -92,14 +92,14 @@ const App: React.FC = () => {
   const handleNext = () => {
     if (session && currentResponse !== null) {
       const currentQuestion = session.questions[currentIdx];
-      
+
       let isCorrect = false;
       if (typeof currentResponse === 'number') {
         isCorrect = currentResponse === currentQuestion.correctAnswerIndex;
       } else {
         isCorrect = currentResponse.toString().trim().toLowerCase() === (currentQuestion.correctAnswerText || '').trim().toLowerCase();
       }
-      
+
       const updatedSession = {
         ...session,
         responses: { ...session.responses, [currentIdx]: currentResponse },
@@ -123,27 +123,27 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <Navbar 
-        user={user} 
-        onLogout={handleLogout} 
-        onGoHome={() => setView(user ? AppView.DASHBOARD : AppView.AUTH)} 
+      <Navbar
+        user={user}
+        onLogout={handleLogout}
+        onGoHome={() => setView(user ? AppView.DASHBOARD : AppView.AUTH)}
       />
 
       <main className="max-w-4xl mx-auto px-4 py-8">
         {view === AppView.AUTH && <Auth onAuthSuccess={handleAuthSuccess} />}
 
         {view === AppView.DASHBOARD && user && (
-          <Dashboard 
-            user={user} 
-            stats={stats} 
-            onNewQuiz={() => setView(AppView.SETUP)} 
+          <Dashboard
+            user={user}
+            stats={stats}
+            onNewQuiz={() => setView(AppView.SETUP)}
           />
         )}
 
         {view === AppView.SETUP && (
-          <QuizSetup 
-            onStart={handleStartQuiz} 
-            isLoading={loading} 
+          <QuizSetup
+            onStart={handleStartQuiz}
+            isLoading={loading}
             suggestedDifficulty={user?.lastDifficulty || Difficulty.EASY}
           />
         )}
@@ -151,7 +151,7 @@ const App: React.FC = () => {
         {view === AppView.QUIZ && session && (
           <div className="max-w-2xl mx-auto">
             <ProgressBar current={currentIdx + 1} total={session.questions.length} />
-            <QuestionCard 
+            <QuestionCard
               question={session.questions[currentIdx]}
               currentResponse={currentResponse}
               onResponse={setCurrentResponse}
@@ -162,9 +162,9 @@ const App: React.FC = () => {
         )}
 
         {view === AppView.RESULT && session && (
-          <QuizResult 
-            session={session} 
-            onRestart={() => setView(AppView.DASHBOARD)} 
+          <QuizResult
+            session={session}
+            onRestart={() => setView(AppView.DASHBOARD)}
           />
         )}
 
@@ -181,7 +181,7 @@ const App: React.FC = () => {
         <div className="mt-2 flex justify-center gap-4 text-xs font-medium uppercase tracking-widest text-slate-300">
           <span>Persisted DB: LocalStorage</span>
           <span>•</span>
-          <span>Engine: Gemini 3 Flash</span>
+          <span>Engine: Gemini 1.5 Flash</span>
         </div>
       </footer>
     </div>

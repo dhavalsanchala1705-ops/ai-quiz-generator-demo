@@ -2,7 +2,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Difficulty, Question, QuestionType } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
 
 export const generateQuizQuestions = async (
   subject: string,
@@ -22,7 +22,7 @@ export const generateQuizQuestions = async (
   Include an explanation for all questions.`;
 
   const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+    model: "gemini-1.5-flash",
     contents: prompt,
     config: {
       responseMimeType: "application/json",
@@ -31,28 +31,28 @@ export const generateQuizQuestions = async (
         items: {
           type: Type.OBJECT,
           properties: {
-            type: { 
-              type: Type.STRING, 
+            type: {
+              type: Type.STRING,
               enum: ["mcq", "tf", "fitb"],
               description: "The format of the question."
             },
             text: { type: Type.STRING, description: "The quiz question text." },
-            options: { 
-              type: Type.ARRAY, 
+            options: {
+              type: Type.ARRAY,
               items: { type: Type.STRING },
               description: "Options for mcq (4) or tf (2). Leave empty for fitb."
             },
-            correctAnswerIndex: { 
-              type: Type.INTEGER, 
-              description: "Zero-based index of the correct option for mcq/tf." 
+            correctAnswerIndex: {
+              type: Type.INTEGER,
+              description: "Zero-based index of the correct option for mcq/tf."
             },
-            correctAnswerText: { 
-              type: Type.STRING, 
-              description: "The exact correct string for fitb." 
+            correctAnswerText: {
+              type: Type.STRING,
+              description: "The exact correct string for fitb."
             },
-            explanation: { 
-              type: Type.STRING, 
-              description: "A short explanation of the correct answer." 
+            explanation: {
+              type: Type.STRING,
+              description: "A short explanation of the correct answer."
             }
           },
           required: ["type", "text", "explanation"],
@@ -63,7 +63,19 @@ export const generateQuizQuestions = async (
   });
 
   try {
-    const rawJson = response.text.trim();
+    let rawJson = response.text?.trim();
+    if (!rawJson) {
+      if (response.data && typeof response.data === 'object') { // Fallback if direct text isn't available
+        rawJson = JSON.stringify(response.data);
+      } else {
+        throw new Error("Empty response from AI");
+      }
+    }
+
+    // Remove markdown code blocks if present (common behavior of Gemini)
+    if (rawJson.startsWith("```")) {
+      rawJson = rawJson.replace(/^```(json)?\n?/, "").replace(/\n?```$/, "");
+    }
     const questions: any[] = JSON.parse(rawJson);
     return questions.map((q, idx) => ({
       ...q,
@@ -71,6 +83,7 @@ export const generateQuizQuestions = async (
     }));
   } catch (error) {
     console.error("Failed to parse AI response:", error);
+    console.log("Raw Response was:", response.text);
     throw new Error("The AI returned an invalid response format. Please try again.");
   }
 };
