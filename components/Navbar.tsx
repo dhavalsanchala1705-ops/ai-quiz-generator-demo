@@ -14,9 +14,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onGoHome }) => {
     <nav className="border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-50 transition-colors">
       <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
         <button onClick={onGoHome} className="flex items-center gap-2 group">
-          <div className="w-8 h-8 bg-indigo-600 rounded flex items-center justify-center text-white font-bold transition-transform group-hover:scale-105">
-            F
-          </div>
+          <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain transition-transform group-hover:scale-105" />
           <span className="font-bold text-slate-900 dark:text-white hidden sm:inline text-xl tracking-tight">FundaMinds</span>
         </button>
 

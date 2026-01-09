@@ -18,12 +18,19 @@ const saveToDB = <T>(key: string, data: T[]) => {
 
 // --- Auth Services ---
 
-export const signup = (name: string, email: string): User => {
+export const signup = (name: string, email: string, password?: string): User => {
   const users = getFromDB<User>(DB_USERS);
+
+  // Check if user already exists
+  if (users.some(u => u.email === email)) {
+    throw new Error('User already exists');
+  }
+
   const newUser: User = {
     id: `u-${Date.now()}`,
     name,
     email,
+    password, // Save password
     lastDifficulty: Difficulty.EASY,
     createdAt: Date.now()
   };
@@ -33,10 +40,15 @@ export const signup = (name: string, email: string): User => {
   return newUser;
 };
 
-export const login = (email: string): User | null => {
+export const login = (email: string, password?: string): User | null => {
   const users = getFromDB<User>(DB_USERS);
   const user = users.find(u => u.email === email);
+
   if (user) {
+    // Simple password check (in real app, use hashing)
+    if (user.password && user.password !== password) {
+      return null;
+    }
     localStorage.setItem(SESSION_USER_ID, user.id);
     return user;
   }
@@ -60,7 +72,7 @@ export const saveQuizSession = (session: QuizSession) => {
   const sessions = getFromDB<QuizSession>(DB_SESSIONS);
   sessions.push(session);
   saveToDB(DB_SESSIONS, sessions);
-  
+
   // Update User profile based on results
   const users = getFromDB<User>(DB_USERS);
   const userIdx = users.findIndex(u => u.id === session.userId);
@@ -78,10 +90,10 @@ export const getDashboardStats = (userId: string): DashboardStats => {
     .sort((a, b) => b.createdAt - a.createdAt);
 
   const total = userSessions.length;
-  const avgScore = total > 0 
-    ? userSessions.reduce((acc, curr) => acc + (curr.score / curr.questions.length), 0) / total 
+  const avgScore = total > 0
+    ? userSessions.reduce((acc, curr) => acc + (curr.score / curr.questions.length), 0) / total
     : 0;
-  
+
   const subjects = Array.from(new Set(userSessions.map(s => s.subject)));
 
   return {
