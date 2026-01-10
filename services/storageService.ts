@@ -1,58 +1,50 @@
-
-import { QuizSession, User, Difficulty, DashboardStats } from "../types";
+import { QuizSession, User, Difficulty, DashboardStats, Room } from "../types";
+import { api } from "./api";
 
 const DB_USERS = "quiz_db_users";
 const DB_SESSIONS = "quiz_db_sessions";
 const SESSION_USER_ID = "quiz_current_user_id";
 
-// --- Database Operations ---
+// --- Helpers ---
 
 const getFromDB = <T>(key: string): T[] => {
   const data = localStorage.getItem(key);
-  return data ? JSON.parse(data) : [];
+  try {
+    const parsed = data ? JSON.parse(data) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    console.error(`Error parsing data for key ${key}`, e);
+    return [];
+  }
 };
 
 const saveToDB = <T>(key: string, data: T[]) => {
   localStorage.setItem(key, JSON.stringify(data));
 };
 
-// --- Auth Services ---
+// --- Auth Services (Async Wrapper over API) ---
 
-export const signup = (name: string, email: string, password?: string): User => {
-  const users = getFromDB<User>(DB_USERS);
-
-  // Check if user already exists
-  if (users.some(u => u.email === email)) {
-    throw new Error('User already exists');
+export const signup = async (name: string, email: string, password?: string): Promise<User> => {
+  try {
+    const user = await api.auth.signup({ name, email, password });
+    localStorage.setItem(SESSION_USER_ID, user.id);
+    // Also save to local DB for hybrid fallback if needed? 
+    // For now, trust the API return.
+    return user;
+  } catch (err: any) {
+    throw new Error(err.message || 'Signup failed');
   }
-
-  const newUser: User = {
-    id: `u-${Date.now()}`,
-    name,
-    email,
-    password, // Save password
-    lastDifficulty: Difficulty.EASY,
-    createdAt: Date.now()
-  };
-  users.push(newUser);
-  saveToDB(DB_USERS, users);
-  localStorage.setItem(SESSION_USER_ID, newUser.id);
-  return newUser;
 };
 
-export const login = (email: string, password?: string): User | null => {
-  const users = getFromDB<User>(DB_USERS);
-  const user = users.find(u => u.email === email);
-
-  if (user) {
-    // Simple password check (in real app, use hashing)
-    if (user.password && user.password !== password) {
-      return null;
-    }
+export const login = async (email: string, password?: string): Promise<User | null> => {
+  try {
+    const user = await api.auth.login({ email, password });
     localStorage.setItem(SESSION_USER_ID, user.id);
     return user;
+  } catch (err) {
+    console.error(err);
+    return null;
   }
-  return null;
 };
 
 export const logout = () => {
@@ -62,40 +54,55 @@ export const logout = () => {
 export const getCurrentUser = (): User | null => {
   const userId = localStorage.getItem(SESSION_USER_ID);
   if (!userId) return null;
-  const users = getFromDB<User>(DB_USERS);
-  return users.find(u => u.id === userId) || null;
+  // If we are fully API based, we might want to validate token?
+  // For now, we return a shell user or we need to GET user from API?
+  // Let's rely on LocalStorage cache of profile if we have it?
+  // But strictly, we only have ID.
+  // We need `getUser(id)` in API?
+  // Or just cache the User Object in Login?
+  // Let's cache the full user object for simplicity in this demo.
+  const cached = localStorage.getItem('quiz_user_cache');
+  if (cached) return JSON.parse(cached);
+
+  // Fallback: If we have ID but no object, we are stuck in Sync mode.
+  // We'll return null to force re-login?
+  return null;
 };
 
-// --- Quiz Services ---
+// Update login/signup to cache user
+const cacheUser = (user: User) => {
+  localStorage.setItem(SESSION_USER_ID, user.id);
+  localStorage.setItem('quiz_user_cache', JSON.stringify(user));
+}
+
+// Redefine login/signup to use cacheUser
+export const loginWrapper = async (e: string, p?: string) => {
+  const u = await login(e, p);
+  if (u) cacheUser(u);
+  return u;
+}
+export const signupWrapper = async (n: string, e: string, p?: string) => {
+  const u = await signup(n, e, p);
+  if (u) cacheUser(u);
+  return u;
+}
+
+// --- Quiz Services (Local for now) ---
 
 export const saveQuizSession = (session: QuizSession) => {
   const sessions = getFromDB<QuizSession>(DB_SESSIONS);
   sessions.push(session);
   saveToDB(DB_SESSIONS, sessions);
-
-  // Update User profile based on results
-  const users = getFromDB<User>(DB_USERS);
-  const userIdx = users.findIndex(u => u.id === session.userId);
-  if (userIdx > -1) {
-    const scorePerc = (session.score / session.questions.length) * 100;
-    users[userIdx].lastDifficulty = getSuggestedDifficulty(scorePerc, session.difficulty);
-    saveToDB(DB_USERS, users);
-  }
+  // Difficulty update logic is local-only now unless we add API endpoint
 };
 
 export const getDashboardStats = (userId: string): DashboardStats => {
+  // Sync version from local storage
   const allSessions = getFromDB<QuizSession>(DB_SESSIONS);
-  const userSessions = allSessions
-    .filter(s => s.userId === userId)
-    .sort((a, b) => b.createdAt - a.createdAt);
-
+  const userSessions = allSessions.filter(s => s.userId === userId);
   const total = userSessions.length;
-  const avgScore = total > 0
-    ? userSessions.reduce((acc, curr) => acc + (curr.score / curr.questions.length), 0) / total
-    : 0;
-
+  const avgScore = total > 0 ? userSessions.reduce((acc, curr) => acc + (curr.score / curr.questions.length), 0) / total : 0;
   const subjects = Array.from(new Set(userSessions.map(s => s.subject)));
-
   return {
     totalQuizzes: total,
     averageScore: Math.round(avgScore * 100),
@@ -106,14 +113,42 @@ export const getDashboardStats = (userId: string): DashboardStats => {
 
 export const getSuggestedDifficulty = (lastScore: number | null, currentDifficulty: Difficulty): Difficulty => {
   if (lastScore === null) return currentDifficulty;
-  if (lastScore >= 80) {
-    if (currentDifficulty === Difficulty.EASY) return Difficulty.MEDIUM;
-    if (currentDifficulty === Difficulty.MEDIUM) return Difficulty.HARD;
-    return Difficulty.HARD;
-  } else if (lastScore < 40) {
-    if (currentDifficulty === Difficulty.HARD) return Difficulty.MEDIUM;
-    if (currentDifficulty === Difficulty.MEDIUM) return Difficulty.EASY;
-    return Difficulty.EASY;
-  }
+  if (lastScore >= 80) return currentDifficulty === Difficulty.EASY ? Difficulty.MEDIUM : Difficulty.HARD;
+  if (lastScore < 40) return currentDifficulty === Difficulty.HARD ? Difficulty.MEDIUM : Difficulty.EASY;
   return currentDifficulty;
 };
+
+// --- Room Services (Async API) ---
+
+export const createRoom = async (ownerId: string): Promise<Room> => {
+  return await api.rooms.create(ownerId);
+};
+
+export const updateRoomQuiz = async (
+  roomCode: string,
+  questions: any[],
+  config: any
+): Promise<Room> => {
+  return await api.rooms.updateQuiz(roomCode, questions, config);
+};
+
+export const endRoomSession = async (roomCode: string): Promise<void> => {
+  await api.rooms.end(roomCode);
+};
+
+export const getRoom = async (roomCode: string): Promise<Room | null> => {
+  return await api.rooms.get(roomCode);
+};
+
+export const joinRoom = async (roomCode: string, userId: string): Promise<Room> => {
+  return await api.rooms.join(roomCode, userId);
+};
+
+export const getTeacherRooms = async (teacherId: string): Promise<Room[]> => {
+  return await api.rooms.getTeacherRooms(teacherId);
+};
+
+export const updateStudentProgress = async (roomCode: string, userId: string, progress: any) => {
+  return await api.rooms.updateProgress(roomCode, userId, progress);
+}
+

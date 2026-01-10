@@ -2,14 +2,15 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Difficulty, Question, QuestionType } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
-
 export const generateQuizQuestions = async (
   subject: string,
   chapter: string,
   difficulty: Difficulty,
-  count: number = 5
+  count: number = 5,
+  apiKey?: string
 ): Promise<Question[]> => {
+  const key = apiKey || import.meta.env.VITE_GEMINI_API_KEY;
+  const ai = new GoogleGenAI({ apiKey: key });
   const prompt = `Generate ${count} mixed-format questions for the subject "${subject}", chapter "${chapter}". 
   Difficulty: "${difficulty}". 
   Provide a mix of these types:
@@ -104,8 +105,9 @@ export const generateQuizQuestions = async (
       id: `q-${Date.now()}-${idx}`
     }));
   } catch (error) {
-    console.error("Failed to parse AI response:", error);
-    console.log("Raw Response was:", response.text);
-    throw new Error("The AI returned an invalid response format. Please try again.");
+    console.error("AI Generation failed, switching to backup questions:", error);
+    // Fallback to static questions
+    const { getFallbackQuestions } = await import("./questionBank");
+    return getFallbackQuestions(count, subject);
   }
 };

@@ -24,8 +24,13 @@ enum AppView {
   SETUP = 'setup',
   QUIZ = 'quiz',
   RESULT = 'result',
-  PRIVACY = 'privacy'
+  PRIVACY = 'privacy',
+  TEACHER_ROOM = 'teacher_room',
+  JOIN_ROOM = 'join_room'
 }
+
+import TeacherRoom from './components/TeacherRoom';
+import StudentJoin from './components/StudentJoin';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -63,12 +68,12 @@ const App: React.FC = () => {
     setView(AppView.AUTH);
   };
 
-  const handleStartQuiz = async (subject: string, chapter: string, difficulty: Difficulty) => {
+  const handleStartQuiz = async (subject: string, chapter: string, difficulty: Difficulty, apiKey?: string) => {
     if (!user) return;
     setLoading(true);
     setError(null);
     try {
-      const questions = await generateQuizQuestions(subject, chapter, difficulty);
+      const questions = await generateQuizQuestions(subject, chapter, difficulty, 5, apiKey);
       const newSession: QuizSession = {
         id: `session-${Date.now()}`,
         userId: user.id,
@@ -89,6 +94,25 @@ const App: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleStudentQuizStart = (room: any) => {
+    if (!user) return;
+    const newSession: QuizSession = {
+      id: `session-${Date.now()}`,
+      userId: user.id,
+      subject: room.config?.subject || 'Class Quiz',
+      chapter: room.config?.topic || 'Class Quiz',
+      difficulty: room.config?.difficulty || Difficulty.EASY,
+      questions: room.questions || [],
+      responses: {},
+      score: 0,
+      createdAt: Date.now()
+    };
+    setSession(newSession);
+    setCurrentIdx(0);
+    setCurrentResponse(null);
+    setView(AppView.QUIZ);
   };
 
   const handleNext = () => {
@@ -141,6 +165,20 @@ const App: React.FC = () => {
             user={user}
             stats={stats}
             onNewQuiz={() => setView(AppView.SETUP)}
+            onTeacherRoom={() => setView(AppView.TEACHER_ROOM)}
+            onJoinRoom={() => setView(AppView.JOIN_ROOM)}
+          />
+        )}
+
+        {view === AppView.TEACHER_ROOM && user && (
+          <TeacherRoom user={user} onBack={() => setView(AppView.DASHBOARD)} />
+        )}
+
+        {view === AppView.JOIN_ROOM && user && (
+          <StudentJoin
+            user={user}
+            onBack={() => setView(AppView.DASHBOARD)}
+            onQuizStart={handleStudentQuizStart}
           />
         )}
 

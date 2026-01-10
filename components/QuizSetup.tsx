@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Difficulty } from '../types';
 
 interface QuizSetupProps {
-  onStart: (subject: string, chapter: string, difficulty: Difficulty) => void;
+  onStart: (subject: string, chapter: string, difficulty: Difficulty, apiKey?: string) => void;
   isLoading: boolean;
   suggestedDifficulty: Difficulty;
 }
@@ -12,15 +12,16 @@ const QuizSetup: React.FC<QuizSetupProps> = ({ onStart, isLoading, suggestedDiff
   const [subject, setSubject] = useState('');
   const [chapter, setChapter] = useState('');
   const [difficulty, setDifficulty] = useState<Difficulty>(suggestedDifficulty);
+  const [apiKey, setApiKey] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (subject && chapter) {
-      onStart(subject, chapter, difficulty);
+      onStart(subject, chapter, difficulty, apiKey);
     }
   };
 
-  const subjects = ['Mathematics', 'Science', 'History', 'Geography', 'Computer Science', 'Literature'];
+  const subjects = ['Aptitude Test', 'Computer Science', 'Geography', 'History', 'Literature', 'Mathematics', 'Science'];
   const difficulties = [
     { value: Difficulty.EASY, label: 'Easy', color: 'text-green-600' },
     { value: Difficulty.MEDIUM, label: 'Medium', color: 'text-orange-600' },
@@ -83,8 +84,8 @@ const QuizSetup: React.FC<QuizSetupProps> = ({ onStart, isLoading, suggestedDiff
                 type="button"
                 onClick={() => setDifficulty(d.value)}
                 className={`p-3 rounded-lg border-2 text-center transition-all ${difficulty === d.value
-                    ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 font-bold'
-                    : 'border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-400 dark:text-slate-500'
+                  ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 font-bold'
+                  : 'border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-400 dark:text-slate-500'
                   }`}
               >
                 <span className={difficulty === d.value ? (d.value === Difficulty.HARD ? 'text-red-600 dark:text-red-400' : d.value === Difficulty.MEDIUM ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400') : ''}>{d.label}</span>
@@ -96,6 +97,19 @@ const QuizSetup: React.FC<QuizSetupProps> = ({ onStart, isLoading, suggestedDiff
               Note: System suggested {suggestedDifficulty} based on your last performance.
             </p>
           )}
+        </div>
+
+        <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
+          <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">
+            Gemini API Key (Optional) <span className="font-normal opacity-70">- Leave empty to use system key</span>
+          </label>
+          <input
+            type="password"
+            placeholder="AIzaSy... (Paste your own key to override)"
+            className="w-full p-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-slate-700 dark:text-slate-300 focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+          />
         </div>
 
         <button

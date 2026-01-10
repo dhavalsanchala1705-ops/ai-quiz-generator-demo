@@ -21,6 +21,21 @@
       }
     }
   </script>
+  <style>
+    /* Hide native password toggle in Edge/IE */
+    input[type="password"]::-ms-reveal,
+    input[type="password"]::-ms-clear {
+      display: none;
+    }
+
+    /* Hide native password toggle in some other browsers if applicable */
+    input[type="password"]::-webkit-credentials-auto-fill-button {
+      visibility: hidden;
+      pointer-events: none;
+      position: absolute;
+      right: 0;
+    }
+  </style>
   <script type="importmap">
 {
   "imports": {

@@ -49,3 +49,25 @@ export interface DashboardStats {
   masteredSubjects: string[];
   recentSessions: QuizSession[];
 }
+
+export interface Room {
+  id: string;      // The 6-digit code
+  ownerId: string; // User ID of the teacher
+  createdAt: number;
+  participants: string[]; // List of User IDs
+  isActive: boolean;
+  status: 'waiting' | 'ready' | 'active' | 'completed';
+  questions?: Question[];
+  config?: {
+    subject: string;
+    topic: string;
+    difficulty: Difficulty;
+    questionCount: number;
+    durationSeconds: number;
+  };
+  studentProgress?: Record<string, {
+    currentQuestionIndex: number;
+    completed: boolean;
+    score: number;
+  }>;
+}
