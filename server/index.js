@@ -60,6 +60,17 @@ function initializeSchema() {
       FOREIGN KEY(user_id) REFERENCES users(id),
       UNIQUE(room_id, user_id)
     )`);
+
+        db.run(`CREATE TABLE IF NOT EXISTS quiz_sessions (
+        id TEXT PRIMARY KEY,
+        user_id TEXT,
+        subject TEXT,
+        score INTEGER,
+        total_questions INTEGER,
+        difficulty TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(user_id) REFERENCES users(id)
+    )`);
     });
 }
 
@@ -332,6 +343,47 @@ app.put('/api/rooms/:code/progress', async (req, res) => {
         await dbRun('UPDATE rooms SET student_progress = ? WHERE id = ?', [JSON.stringify(currentProgress), req.params.code]);
 
         res.json({ success: true, progress: currentProgress });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+
+
+// --- Solo Session Routes ---
+
+app.post('/api/sessions', async (req, res) => {
+    const { userId, subject, score, totalQuestions, difficulty, id } = req.body;
+    const sessionId = id || `s-${Date.now()}`;
+    try {
+        await dbRun(
+            'INSERT INTO quiz_sessions (id, user_id, subject, score, total_questions, difficulty) VALUES (?, ?, ?, ?, ?, ?)',
+            [sessionId, userId, subject, score, totalQuestions, difficulty]
+        );
+        res.json({ id: sessionId });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/sessions/:userId', async (req, res) => {
+    try {
+        const rows = await dbAll('SELECT * FROM quiz_sessions WHERE user_id = ? ORDER BY created_at DESC', [req.params.userId]);
+        // Map to internal format if needed
+        const sessions = rows.map(r => ({
+            id: r.id,
+            userId: r.user_id,
+            subject: r.subject,
+            score: r.score,
+            totalQuestions: r.total_questions,
+            difficulty: r.difficulty,
+            createdAt: r.created_at,
+            // Mock other fields for frontend compat
+            questions: [],
+            responses: {},
+            completedAt: r.created_at
+        }));
+        res.json(sessions);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

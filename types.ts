@@ -32,6 +32,7 @@ export interface QuizSession {
   score: number;
   completedAt?: number;
   createdAt: number;
+  roomCode?: string;
 }
 
 export interface User {

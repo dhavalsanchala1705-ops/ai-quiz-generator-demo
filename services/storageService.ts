@@ -98,23 +98,47 @@ export const signupWrapper = async (n: string, e: string, p?: string) => {
 // --- Quiz Services (Local for now) ---
 
 export const saveQuizSession = (session: QuizSession) => {
+  // 1. Local Save
   const sessions = getFromDB<QuizSession>(DB_SESSIONS);
   sessions.push(session);
   saveToDB(DB_SESSIONS, sessions);
-  // Difficulty update logic is local-only now unless we add API endpoint
+
+  // 2. Remote Save (Fire & Forget)
+  api.sessions.create(session).catch(err => console.error("Failed to save session remotely:", err));
 };
 
-export const getDashboardStats = (userId: string): DashboardStats => {
-  // Sync version from local storage
+export const getDashboardStatsLocal = (userId: string): DashboardStats => {
   const allSessions = getFromDB<QuizSession>(DB_SESSIONS);
-  const userSessions = allSessions.filter(s => s.userId === userId);
+  return calculateStats(allSessions, userId);
+};
+
+export const getDashboardStatsAsync = async (userId: string): Promise<DashboardStats> => {
+  try {
+    const remoteSessions = await api.sessions.getHistory(userId);
+    // Merge or just use remote? Remote is truth.
+    // Convert remote structure to QuizSession if needed or ensure API returns compatible
+    return calculateStats(remoteSessions, userId);
+  } catch (e) {
+    console.error("Failed to fetch remote stats, falling back to local", e);
+    return getDashboardStatsLocal(userId);
+  }
+};
+
+const calculateStats = (sessions: any[], userId: string): DashboardStats => {
+  // If remote returns matching userId sessions only, filter check is redundant but safe
+  const userSessions = sessions.filter(s => s.userId === userId);
   const total = userSessions.length;
-  const avgScore = total > 0 ? userSessions.reduce((acc, curr) => acc + (curr.score / curr.questions.length), 0) / total : 0;
+  // Handle potential missing 'questions' array in remote light objects
+  const avgScore = total > 0 ? userSessions.reduce((acc, curr) => {
+    const totalQ = curr.questions?.length || curr.totalQuestions || 10;
+    return acc + (curr.score / totalQ);
+  }, 0) / total : 0;
+
   const subjects = Array.from(new Set(userSessions.map(s => s.subject)));
   return {
     totalQuizzes: total,
     averageScore: Math.round(avgScore * 100),
-    masteredSubjects: subjects.slice(0, 3),
+    masteredSubjects: subjects.slice(0, 3) as string[],
     recentSessions: userSessions.slice(0, 5)
   };
 };

@@ -13,9 +13,10 @@ import { generateQuizQuestions } from './services/geminiService';
 import {
   getCurrentUser,
   logout,
-  getDashboardStats,
+  getDashboardStatsAsync,
   saveQuizSession,
-  getSuggestedDifficulty
+  getSuggestedDifficulty,
+  updateStudentProgress
 } from './services/storageService';
 
 enum AppView {
@@ -40,6 +41,7 @@ const App: React.FC = () => {
   const [currentResponse, setCurrentResponse] = useState<string | number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState<DashboardStats>({ totalQuizzes: 0, averageScore: 0, masteredSubjects: [], recentSessions: [] });
 
   // Load initial user session
   useEffect(() => {
@@ -52,9 +54,11 @@ const App: React.FC = () => {
     }
   }, []);
 
-  const stats: DashboardStats = useMemo(() => {
-    if (!user) return { totalQuizzes: 0, averageScore: 0, masteredSubjects: [], recentSessions: [] };
-    return getDashboardStats(user.id);
+  // Load Stats Async from DB
+  useEffect(() => {
+    if (user && view === AppView.DASHBOARD) {
+      getDashboardStatsAsync(user.id).then(setStats);
+    }
   }, [user, view]);
 
   const handleAuthSuccess = (u: User) => {
@@ -107,7 +111,8 @@ const App: React.FC = () => {
       questions: room.questions || [],
       responses: {},
       score: 0,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      roomCode: room.id
     };
     setSession(newSession);
     setCurrentIdx(0);
@@ -132,6 +137,16 @@ const App: React.FC = () => {
         score: isCorrect ? session.score + 1 : session.score
       };
 
+      const nextIdx = currentIdx + 1;
+
+      if (updatedSession.roomCode && user) {
+        updateStudentProgress(updatedSession.roomCode, user.id, {
+          currentQuestionIndex: nextIdx,
+          completed: nextIdx >= session.questions.length,
+          score: updatedSession.score
+        }).catch(e => console.error("Progress Sync Error", e));
+      }
+
       if (currentIdx < session.questions.length - 1) {
         setSession(updatedSession);
         setCurrentIdx(currentIdx + 1);
@@ -140,7 +155,6 @@ const App: React.FC = () => {
         const finalSession = { ...updatedSession, completedAt: Date.now() };
         setSession(finalSession);
         saveQuizSession(finalSession);
-        // Refresh local user state with updated level
         setUser(getCurrentUser());
         setView(AppView.RESULT);
       }

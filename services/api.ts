@@ -84,5 +84,27 @@ export const api = {
                 body: JSON.stringify({ userId, progress })
             });
         }
+    },
+    sessions: {
+        create: async (session: any) => {
+            const res = await fetch(`${API_URL}/sessions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: session.userId,
+                    subject: session.subject,
+                    score: session.score,
+                    totalQuestions: session.questions.length,
+                    difficulty: session.difficulty,
+                    id: session.id
+                })
+            });
+            return res.json();
+        },
+        getHistory: async (userId: string) => {
+            const res = await fetch(`${API_URL}/sessions/${userId}`);
+            if (!res.ok) return [];
+            return res.json();
+        }
     }
 };
