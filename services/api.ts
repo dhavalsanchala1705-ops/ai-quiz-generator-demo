@@ -19,6 +19,24 @@ export const api = {
             });
             if (!res.ok) throw new Error((await res.json()).error);
             return res.json();
+        },
+        forgot: async (email: string) => {
+            const res = await fetch(`${API_URL}/auth/forgot-password`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email }),
+            });
+            if (!res.ok) throw new Error((await res.json()).error);
+            return res.json();
+        },
+        reset: async (token: string, newPassword: string) => {
+            const res = await fetch(`${API_URL}/auth/reset-password`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token, newPassword }),
+            });
+            if (!res.ok) throw new Error((await res.json()).error);
+            return res.json();
         }
     },
     rooms: {

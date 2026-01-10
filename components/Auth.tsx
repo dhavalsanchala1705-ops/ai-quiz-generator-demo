@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { login, signup } from '../services/storageService';
+import { login, signup, forgotPassword, resetPassword } from '../services/storageService';
 import { User } from '../types';
 import { Eye, EyeOff, Loader2, ArrowLeft, Mail, CheckCircle, Lock, ShieldCheck, Check, X, RefreshCw } from 'lucide-react';
 
@@ -30,10 +30,100 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess, onShowPrivacy }) => {
 
   // Validation states
   const [emailError, setEmailError] = useState('');
-  const [passwordError, setPasswordError] = useState('');
-  const [confirmPasswordError, setConfirmPasswordError] = useState('');
+  // const [emailError, setEmailError] = useState(''); // Removed as per instruction
+  // const [passwordError, setPasswordError] = useState(''); // Removed as per instruction
+  // const [confirmPasswordError, setConfirmPasswordError] = useState(''); // Removed as per instruction
   const [captchaError, setCaptchaError] = useState('');
 
+
+
+  const [resetToken, setResetToken] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+
+  // Manual DOM Event Listener for stability
+  useEffect(() => {
+    // Check for Reset Token
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('resetToken');
+    if (token) {
+      setResetToken(token);
+    }
+
+    const form = document.getElementById("signupForm") as HTMLFormElement | null;
+    const errorEl = document.getElementById("error") as HTMLElement | null;
+
+    if (!form) return;
+
+    const handleFormSubmit = async (e: Event) => {
+      e.preventDefault();
+      if (errorEl) errorEl.textContent = "";
+
+      const emailInput = document.getElementById("email") as HTMLInputElement | null;
+      const passwordInput = document.getElementById("password") as HTMLInputElement | null;
+      const usernameInput = document.getElementById("username") as HTMLInputElement | null;
+      const confirmInput = document.getElementById("confirmPassword") as HTMLInputElement | null;
+
+      const emailVal = emailInput?.value || "";
+      const passVal = passwordInput?.value || "";
+      const nameVal = usernameInput?.value || "";
+      const confirmVal = confirmInput?.value || "";
+
+      // Basic Logic
+      if (!isLogin) {
+        // Signup Checks
+        if (!nameVal || !emailVal || !passVal) {
+          if (errorEl) errorEl.textContent = "All fields are required";
+          return;
+        }
+        if (passVal.length < 6) {
+          if (errorEl) errorEl.textContent = "Password must be at least 6 characters";
+          return;
+        }
+        if (passVal !== confirmVal) {
+          if (errorEl) errorEl.textContent = "Passwords do not match";
+          return;
+        }
+      } else {
+        if (!emailVal || !passVal) {
+          if (errorEl) errorEl.textContent = "Email and Password are required";
+          return;
+        }
+      }
+
+      setIsLoading(true);
+      try {
+        if (isLogin) {
+          const user = await login(emailVal, passVal);
+          if (user) {
+            if (rememberMe) {
+              localStorage.setItem('remembered_email', emailVal);
+            } else {
+              localStorage.removeItem('remembered_email');
+            }
+            onAuthSuccess(user);
+          } else {
+            if (errorEl) errorEl.textContent = "Invalid email or password";
+          }
+        } else {
+          try {
+            const user = await signup(nameVal, emailVal, passVal);
+            onAuthSuccess(user);
+          } catch (err: any) {
+            if (errorEl) errorEl.textContent = err.message || "Signup failed";
+          }
+        }
+      } catch (err) {
+        if (errorEl) errorEl.textContent = "An error occurred";
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    form.addEventListener("submit", handleFormSubmit);
+    return () => {
+      form.removeEventListener("submit", handleFormSubmit);
+    };
+  }, [isLogin, onAuthSuccess, rememberMe]); // Re-bind when mode switches
 
 
   // Captcha State
@@ -59,131 +149,44 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess, onShowPrivacy }) => {
 
 
 
-  const validateEmail = (val: string) => {
-    if (!val) {
-      setEmailError('Email is required');
-      return false;
+  // Removed validateEmail, validatePassword, validateConfirmPassword, handleEmailChange, handlePasswordChange, handleConfirmPasswordChange, isFormValid, handleSubmit functions.
+
+  const handleResetSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPassword || !resetToken) return;
+    setIsLoading(true);
+    try {
+      await resetPassword(resetToken, newPassword);
+      alert("Password updated! Please login.");
+      setResetToken(null);
+      setIsLogin(true);
+      window.history.replaceState(null, '', window.location.pathname);
+    } catch (err: any) {
+      alert(err.message || "Failed to reset password");
+    } finally {
+      setIsLoading(false);
     }
-    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!regex.test(val)) {
-      setEmailError('Please enter a valid email address');
-      return false;
-    }
-    setEmailError('');
-    return true;
-  };
-
-  const validatePassword = (val: string) => {
-    if (!val) {
-      setPasswordError('Password is required');
-      return false;
-    }
-    setPasswordError('');
-    return true;
-  };
-
-  const validateConfirmPassword = (val: string, pass: string) => {
-    if (!val) {
-      setConfirmPasswordError('Please confirm your password');
-      return false;
-    }
-    if (val !== pass) {
-      setConfirmPasswordError('Passwords do not match');
-      return false;
-    }
-    setConfirmPasswordError('');
-    return true;
-  };
-
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setEmail(val);
-    validateEmail(val);
-  };
-
-  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setPassword(val);
-  };
-
-  const handleConfirmPasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setConfirmPassword(val);
-  };
-
-  const isFormValid = () => {
-    if (!email) return false;
-    if (emailError) return false;
-
-    // Login Validation
-    if (isLogin && !isForgotPassword) {
-      if (!password || passwordError) return false;
-    }
-
-    // Signup Validation
-    if (!isLogin && !isForgotPassword) {
-      if (!name || !password || passwordError) return false;
-      if (!captchaInput || parseInt(captchaInput) !== captcha.answer) {
-        setCaptchaError('Incorrect captcha answer');
-        return false;
-      }
-      if (!confirmPassword || confirmPasswordError) return false;
-    }
-
-    return true;
   };
 
   const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateEmail(email)) return;
+    // Simplified validation for forgot password, as main validation moved to useEffect
+    if (!email) {
+      // setError('Email is required');
+      return;
+    }
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!regex.test(email)) {
+      // setError('Please enter a valid email address');
+      return;
+    }
 
     setIsLoading(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setIsLoading(false);
-    setResetSent(true);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    if (!isFormValid()) return;
-
-    setIsLoading(true);
-
-    // Simulate network delay
-    // Simulate network delay (Removed as we have real API now)
-    // await new Promise(resolve => setTimeout(resolve, 800));
-
     try {
-      if (isLogin) {
-        const user = await login(email, password);
-        if (user) {
-          if (rememberMe) {
-            localStorage.setItem('remembered_email', email);
-          } else {
-            localStorage.removeItem('remembered_email');
-          }
-          onAuthSuccess(user);
-        } else {
-          setError('Invalid email or password.');
-        }
-      } else {
-        if (!name || !email || !password || !confirmPassword) {
-          setError('Please fill in all fields.');
-          setIsLoading(false);
-          return;
-        }
-        try {
-          const user = await signup(name, email, password);
-          onAuthSuccess(user);
-        } catch (err: any) {
-          setError(err.message || 'Signup failed');
-        }
-      }
-    } catch (err) {
-      setError('An error occurred. Please try again.');
+      await forgotPassword(email);
+      setResetSent(true);
+    } catch (err: any) {
+      alert(err.message || "Failed to send email");
     } finally {
       setIsLoading(false);
     }
@@ -231,7 +234,28 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess, onShowPrivacy }) => {
 
       {/* Right Side - Forms */}
       <div className="p-8 md:p-12 flex flex-col justify-center bg-white dark:bg-slate-800 relative">
-        {isForgotPassword ? (
+        {resetToken ? (
+          <div className="animate-fade-in">
+            <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Set New Password</h2>
+            <p className="text-slate-500 dark:text-slate-400 mb-8">Enter your new password below.</p>
+            <form onSubmit={handleResetSubmit} className="space-y-6">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">New Password</label>
+                <input
+                  type="password"
+                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white dark:bg-slate-900 text-slate-900 dark:text-white transition-all border-slate-200 dark:border-slate-600"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="New Password"
+                />
+              </div>
+              <button disabled={isLoading} type="submit" className="w-full py-3 rounded-lg font-bold bg-indigo-600 text-white hover:bg-indigo-700 flex justify-center items-center">
+                {isLoading ? <Loader2 className="animate-spin mr-2" /> : null}
+                {isLoading ? 'Updating...' : 'Update Password'}
+              </button>
+            </form>
+          </div>
+        ) : isForgotPassword ? (
           // Forgot Password View
           <div className="animate-fade-in">
             <button
@@ -282,19 +306,17 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess, onShowPrivacy }) => {
                   <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Email Address</label>
                   <input
                     type="email"
-                    className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:shadow-[0_0_15px_rgba(99,102,241,0.3)] outline-none bg-white dark:bg-slate-900 text-slate-900 dark:text-white transition-all ${emailError ? 'border-red-500 focus:ring-red-200' : 'border-slate-200 dark:border-slate-600'}`}
+                    className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white dark:bg-slate-900 text-slate-900 dark:text-white transition-all border-slate-200 dark:border-slate-600"
                     placeholder="student@example.com"
                     value={email}
-                    onChange={handleEmailChange}
-                    onBlur={() => validateEmail(email)}
+                    onChange={(e) => setEmail(e.target.value)}
                   />
-                  {emailError && <p className="text-red-500 text-xs mt-1">{emailError}</p>}
                 </div>
 
                 <button
                   type="submit"
-                  disabled={!email || !!emailError || isLoading}
-                  className={`w-full py-3 rounded-lg font-bold flex items-center justify-center transition-all ${!email || !!emailError || isLoading ? 'bg-slate-300 dark:bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-100 dark:shadow-none'}`}
+                  disabled={!email || isLoading}
+                  className={`w-full py-3 rounded-lg font-bold flex items-center justify-center transition-all ${!email || isLoading ? 'bg-slate-300 dark:bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-100 dark:shadow-none'}`}
                 >
                   {isLoading ? (
                     <>
@@ -317,16 +339,16 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess, onShowPrivacy }) => {
               <p className="text-slate-500 dark:text-slate-400">{isLogin ? 'Sign in to allow us to track your progress.' : 'Get started with your free account today.'}</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form id="signupForm" className="space-y-4">
               {!isLogin && (
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Full Name</label>
                   <input
+                    id="username"
                     type="text"
-                    className="w-full p-3 border dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:shadow-[0_0_15px_rgba(99,102,241,0.3)] outline-none bg-white dark:bg-slate-900 text-slate-900 dark:text-white transition-all"
+                    className="w-full p-3 border dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white dark:bg-slate-900 text-slate-900 dark:text-white transition-all"
                     placeholder="John Doe"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    defaultValue={name}
                   />
                 </div>
               )}
@@ -334,38 +356,22 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess, onShowPrivacy }) => {
               <div>
                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Email Address</label>
                 <input
+                  id="email"
                   type="email"
-                  className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:shadow-[0_0_15px_rgba(99,102,241,0.3)] outline-none bg-white dark:bg-slate-900 text-slate-900 dark:text-white transition-all ${emailError ? 'border-red-500 focus:ring-red-200' : 'border-slate-200 dark:border-slate-600'}`}
+                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white dark:bg-slate-900 text-slate-900 dark:text-white transition-all border-slate-200 dark:border-slate-600"
                   placeholder="student@example.com"
-                  value={email}
-                  onChange={handleEmailChange}
-                  onBlur={() => validateEmail(email)}
+                  defaultValue={email}
                 />
-                {emailError && <p className="text-red-500 text-xs mt-1">{emailError}</p>}
               </div>
 
               <div>
                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Password</label>
-                <div className="relative">
-                  <input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    className={`w-full p-3 pr-10 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:shadow-[0_0_15px_rgba(99,102,241,0.3)] outline-none bg-white dark:bg-slate-900 text-slate-900 dark:text-white transition-all ${passwordError ? 'border-red-500 focus:ring-red-200' : 'border-slate-200 dark:border-slate-600'}`}
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={handlePasswordChange}
-                    onBlur={() => validatePassword(password)}
-                  />
-                  <button
-                    type="button"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                  </button>
-                </div>
-                {passwordError && <p className="text-red-500 text-xs mt-1">{passwordError}</p>}
-
+                <input
+                  id="password"
+                  type="password"
+                  className="w-full p-3 border border-slate-200 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white dark:bg-slate-900 text-slate-900 dark:text-white transition-all"
+                  placeholder="••••••••"
+                />
                 {!isLogin && (
                   <p className="mt-2 text-xs text-slate-500">
                     You can set any password you like.
@@ -376,56 +382,12 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess, onShowPrivacy }) => {
               {!isLogin && (
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Confirm Password</label>
-                  <div className="relative">
-                    <input
-                      type={showConfirmPassword ? "text" : "password"}
-                      className={`w-full p-3 pr-10 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:shadow-[0_0_15px_rgba(99,102,241,0.3)] outline-none bg-white dark:bg-slate-900 text-slate-900 dark:text-white transition-all ${confirmPasswordError ? 'border-red-500 focus:ring-red-200' : 'border-slate-200 dark:border-slate-600'}`}
-                      placeholder="••••••••"
-                      value={confirmPassword}
-                      onChange={handleConfirmPasswordChange}
-                      onBlur={() => validateConfirmPassword(confirmPassword, password)}
-                    />
-                    <button
-                      type="button"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    >
-                      {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                    </button>
-                  </div>
-                  {confirmPasswordError && <p className="text-red-500 text-xs mt-1">{confirmPasswordError}</p>}
-                </div>
-              )}
-
-              {!isLogin && (
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Security Check</label>
-                  <div className="flex items-center gap-3">
-                    <div className="bg-slate-100 dark:bg-slate-700 px-4 py-3 rounded-lg font-mono font-bold text-slate-600 dark:text-slate-200 tracking-wider">
-                      {captcha.num1} + {captcha.num2} = ?
-                    </div>
-                    <button
-                      type="button"
-                      onClick={generateCaptcha}
-                      className="p-3 text-slate-400 hover:text-indigo-600 transition-colors"
-                      title="Refresh Captcha"
-                    >
-                      <span className="text-xl font-bold">⟳</span>
-                    </button>
-                    <input
-                      type="number"
-                      value={captchaInput}
-                      onChange={(e) => {
-                        setCaptchaInput(e.target.value);
-                        if (parseInt(e.target.value) === captcha.answer) {
-                          setCaptchaError('');
-                        }
-                      }}
-                      className={`w-24 p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:shadow-[0_0_15px_rgba(99,102,241,0.3)] outline-none bg-white dark:bg-slate-900 text-slate-900 dark:text-white transition-all text-center font-bold ${captchaError ? 'border-red-500 focus:ring-red-200' : 'border-slate-200 dark:border-slate-600'}`}
-                      placeholder="?"
-                    />
-                  </div>
-                  {captchaError && <p className="text-red-500 text-xs mt-1">{captchaError}</p>}
+                  <input
+                    id="confirmPassword"
+                    type="password"
+                    className="w-full p-3 border border-slate-200 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white dark:bg-slate-900 text-slate-900 dark:text-white transition-all"
+                    placeholder="••••••••"
+                  />
                 </div>
               )}
 
@@ -453,21 +415,19 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess, onShowPrivacy }) => {
                 )}
               </div>
 
-              {error && (
-                <div className="p-3 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-sm rounded-lg flex items-center animate-shake">
-                  <span className="mr-2">⚠️</span> {error}
-                </div>
-              )}
+              <div id="error" className="text-red-500 text-sm font-semibold min-h-[20px]">
+                {error}
+              </div>
 
               <button
+                id="submitBtn"
                 type="submit"
-                disabled={!isFormValid() || isLoading}
-                className={`w-full py-3 rounded-lg font-bold flex items-center justify-center transition-all ${!isFormValid() || isLoading ? 'bg-slate-300 dark:bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-100 dark:shadow-none'}`}
+                className="w-full py-3 rounded-lg font-bold flex items-center justify-center transition-all bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-100 dark:shadow-none"
               >
                 {isLoading ? (
                   <>
                     <Loader2 className="animate-spin mr-2" size={20} />
-                    {isLogin ? 'Logging In...' : 'Signing Up...'}
+                    Processing...
                   </>
                 ) : (
                   isLogin ? 'Login' : 'Sign Up'

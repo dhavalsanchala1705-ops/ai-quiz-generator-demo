@@ -125,6 +125,76 @@ app.post('/api/auth/login', async (req, res) => {
     }
 });
 
+app.post('/api/auth/forgot-password', async (req, res) => {
+    const { email } = req.body;
+    try {
+        const user = await dbGet('SELECT * FROM users WHERE email = ?', [email]);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        const token = require('crypto').randomBytes(32).toString('hex');
+        const expires = Date.now() + 3600000; // 1 hour
+
+        // Ensure columns exist (Quick Fix for Demo)
+        try { await dbRun("ALTER TABLE users ADD COLUMN reset_token TEXT"); } catch (e) { }
+        try { await dbRun("ALTER TABLE users ADD COLUMN reset_expires INTEGER"); } catch (e) { }
+
+        await dbRun('UPDATE users SET reset_token = ?, reset_expires = ? WHERE id = ?', [token, expires, user.id]);
+
+        // Ethereal Email
+        const nodemailer = require('nodemailer');
+        const testAccount = await nodemailer.createTestAccount();
+        const transporter = nodemailer.createTransport({
+            host: "smtp.ethereal.email",
+            port: 587,
+            secure: false,
+            auth: {
+                user: testAccount.user,
+                pass: testAccount.pass,
+            },
+        });
+
+        // Use Local IP if possible, or localhost
+        const resetLink = `http://localhost:3001/?resetToken=${token}`;
+
+        const info = await transporter.sendMail({
+            from: '"AI Quiz Gen" <noreply@aiquiz.com>',
+            to: email,
+            subject: "Reset Your Password",
+            html: `
+                <h3>Password Reset Request</h3>
+                <p>Click the link below to reset your password:</p>
+                <p><a href="${resetLink}">Reset Password</a></p>
+                <p>This link expires in 1 hour.</p>
+            `,
+        });
+
+        console.log("Message sent: %s", info.messageId);
+        console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info));
+
+        res.json({ message: 'Reset link sent', preview: nodemailer.getTestMessageUrl(info) });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error: ' + err.message });
+    }
+});
+
+app.post('/api/auth/reset-password', async (req, res) => {
+    const { token, newPassword } = req.body;
+    try {
+        const user = await dbGet('SELECT * FROM users WHERE reset_token = ?', [token]);
+        if (!user) return res.status(400).json({ error: 'Invalid or expired token' });
+
+        if (Date.now() > user.reset_expires) {
+            return res.status(400).json({ error: 'Token expired' });
+        }
+
+        await dbRun('UPDATE users SET password_hash = ?, reset_token = NULL, reset_expires = NULL WHERE id = ?', [newPassword, user.id]);
+        res.json({ message: 'Password updated successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // --- Room Routes ---
 
 app.post('/api/rooms', async (req, res) => {

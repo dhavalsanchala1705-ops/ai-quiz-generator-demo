@@ -47,6 +47,14 @@ export const login = async (email: string, password?: string): Promise<User | nu
   }
 };
 
+export const forgotPassword = async (email: string) => {
+  return await api.auth.forgot(email);
+};
+
+export const resetPassword = async (token: string, newPassword: string) => {
+  return await api.auth.reset(token, newPassword);
+};
+
 export const logout = () => {
   localStorage.removeItem(SESSION_USER_ID);
 };
