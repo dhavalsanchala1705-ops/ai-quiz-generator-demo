@@ -1,4 +1,14 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002/api';
+const getBaseUrl = () => {
+    let url = import.meta.env.VITE_API_URL || 'http://localhost:3002/api';
+    // If we get a root URL from Render (e.g. https://service.onrender.com), append /api
+    if (!url.endsWith('/api') && !url.endsWith('/api/')) {
+        url = `${url}/api`;
+    }
+    // Remove trailing slash if present to avoid double slashes
+    return url.replace(/\/$/, '');
+};
+
+const API_URL = getBaseUrl();
 
 export const api = {
     auth: {

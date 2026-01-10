@@ -1,0 +1,26 @@
+services:
+  # Backend Node.js Service
+  - type: web
+    name: ai-quiz-backend
+    runtime: node
+    root: server
+    buildCommand: npm install
+    startCommand: node index.js
+    envVars:
+      - key: PORT
+        value: 10000
+    plan: free
+
+  # Frontend Static Site
+  - type: static
+    name: ai-quiz-frontend
+    runtime: static
+    root: .
+    buildCommand: npm install && npm run build
+    publish: dist
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: ai-quiz-backend
+          property: url
