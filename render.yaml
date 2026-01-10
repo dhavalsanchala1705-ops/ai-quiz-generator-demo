@@ -11,14 +11,16 @@ services:
         value: 10000
     plan: free
 
-  # Frontend Static Site
-  - type: site
+  # Frontend (Served as Web Service)
+  - type: web
     name: ai-quiz-frontend
-    runtime: static
+    runtime: node
     root: .
     buildCommand: npm install && npm run build
-    publish: dist
+    startCommand: npx serve -s dist -p $PORT
     envVars:
+      - key: PORT
+        value: 10000
       - key: VITE_API_URL
         fromService:
           type: web
