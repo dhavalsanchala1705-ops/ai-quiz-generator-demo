@@ -12,7 +12,7 @@ const QuizSetup: React.FC<QuizSetupProps> = ({ onStart, isLoading, suggestedDiff
   const [subject, setSubject] = useState('');
   const [chapter, setChapter] = useState('');
   const [difficulty, setDifficulty] = useState<Difficulty>(suggestedDifficulty);
-  const [apiKey, setApiKey] = useState('');
+  const [apiKey, setApiKey] = useState('AIzaSyAc7sBAUfE-RQui3G8aeCv9Rmg5UyGEPqs');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

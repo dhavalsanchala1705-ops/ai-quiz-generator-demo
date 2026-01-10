@@ -54,7 +54,7 @@ export interface Room {
   id: string;      // The 6-digit code
   ownerId: string; // User ID of the teacher
   createdAt: number;
-  participants: string[]; // List of User IDs
+  participants: { id: string; name: string }[]; // List of Participants
   isActive: boolean;
   status: 'waiting' | 'ready' | 'active' | 'completed';
   questions?: Question[];

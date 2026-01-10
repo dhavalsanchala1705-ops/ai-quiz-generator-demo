@@ -15,17 +15,19 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onGoHome }) => {
       <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
         <button onClick={onGoHome} className="flex items-center gap-2 group">
           <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain transition-transform group-hover:scale-105" />
-          <span className="font-bold text-slate-900 dark:text-white hidden sm:inline text-xl tracking-tight">FundaMinds</span>
+          <span className="font-bold text-slate-900 dark:text-white text-xl tracking-tight">FundaMinds</span>
         </button>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 md:gap-4">
           {user && (
-            <div className="flex items-center gap-4 sm:gap-6">
+            <div className="flex items-center gap-2 md:gap-6">
               <button
                 onClick={onGoHome}
-                className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors hidden sm:block"
+                className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                title="Dashboard"
               >
-                Dashboard
+                <span className="hidden sm:inline">Dashboard</span>
+                <span className="sm:hidden">🏠</span>
               </button>
               <div className="flex items-center gap-2 sm:border-l sm:pl-6 border-slate-200 dark:border-slate-700">
                 <span className="text-xs text-slate-400 hidden sm:inline">Logged as </span>

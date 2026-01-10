@@ -233,8 +233,8 @@ app.get('/api/rooms/teacher/:teacherId', async (req, res) => {
 
         const rooms = [];
         for (let room of rows) {
-            const parts = await dbAll('SELECT user_id FROM room_participants WHERE room_id = ?', [room.id]);
-            room.participants = parts.map(r => r.user_id);
+            const parts = await dbAll('SELECT rp.user_id, u.name FROM room_participants rp LEFT JOIN users u ON rp.user_id = u.id WHERE rp.room_id = ?', [room.id]);
+            room.participants = parts.map(r => ({ id: r.user_id, name: r.name || 'Unknown' }));
 
             // Parse JSON
             try { room.config = JSON.parse(room.config); } catch (e) { }
@@ -256,8 +256,8 @@ app.get('/api/rooms/:code', async (req, res) => {
         const room = await dbGet('SELECT * FROM rooms WHERE id = ?', [req.params.code]);
         if (!room) return res.status(404).json({ error: 'Room not found' });
 
-        const parts = await dbAll('SELECT user_id FROM room_participants WHERE room_id = ?', [req.params.code]);
-        room.participants = parts.map(r => r.user_id);
+        const parts = await dbAll('SELECT rp.user_id, u.name FROM room_participants rp LEFT JOIN users u ON rp.user_id = u.id WHERE rp.room_id = ?', [req.params.code]);
+        room.participants = parts.map(r => ({ id: r.user_id, name: r.name || 'Unknown' }));
 
         try { room.config = JSON.parse(room.config); } catch (e) { }
         try { room.questions = JSON.parse(room.questions); } catch (e) { }

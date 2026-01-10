@@ -18,27 +18,27 @@ const Dashboard: React.FC<DashboardProps> = ({ user, stats, onNewQuiz, onTeacher
           <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Welcome, {user.name}!</h1>
           <p className="text-slate-500 dark:text-slate-400">Track your progress and start new challenges.</p>
         </div>
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
           <button
             onClick={onJoinRoom}
-            className="bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border-2 border-indigo-100 dark:border-indigo-900/30 px-6 py-3 rounded-xl font-bold hover:bg-indigo-50 dark:hover:bg-slate-700 transition-all flex items-center gap-2"
+            className="flex-1 sm:flex-none justify-center bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border-2 border-indigo-100 dark:border-indigo-900/30 px-6 py-3 rounded-xl font-bold hover:bg-indigo-50 dark:hover:bg-slate-700 transition-all flex items-center gap-2"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>
             Join Room
           </button>
           <button
             onClick={onTeacherRoom}
-            className="bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border-2 border-indigo-100 dark:border-indigo-900/30 px-6 py-3 rounded-xl font-bold hover:bg-indigo-50 dark:hover:bg-slate-700 transition-all flex items-center gap-2"
+            className="flex-1 sm:flex-none justify-center bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border-2 border-indigo-100 dark:border-indigo-900/30 px-6 py-3 rounded-xl font-bold hover:bg-indigo-50 dark:hover:bg-slate-700 transition-all flex items-center gap-2"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
             Teacher Room
           </button>
           <button
             onClick={onNewQuiz}
-            className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-lg shadow-indigo-100 dark:shadow-none"
+            className="flex-1 sm:flex-none justify-center bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-lg shadow-indigo-100 dark:shadow-none"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-            Start New Quiz
+            New Quiz
           </button>
         </div>
       </div>

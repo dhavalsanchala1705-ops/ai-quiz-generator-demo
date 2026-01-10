@@ -26,7 +26,7 @@ const TeacherRoom: React.FC<TeacherRoomProps> = ({ user, onBack }) => {
     const [participants, setParticipants] = useState<any[]>([]);
     const [showLeaderboard, setShowLeaderboard] = useState(false);
     const [viewHistory, setViewHistory] = useState(false);
-    const [apiKey, setApiKey] = useState('');
+    const [apiKey, setApiKey] = useState('AIzaSyAc7sBAUfE-RQui3G8aeCv9Rmg5UyGEPqs');
     const [historyRooms, setHistoryRooms] = useState<any[]>([]);
 
     React.useEffect(() => {
@@ -43,11 +43,12 @@ const TeacherRoom: React.FC<TeacherRoomProps> = ({ user, onBack }) => {
         const interval = setInterval(async () => {
             const room = await getRoom(roomCode);
             if (room) {
-                const progressData = room.participants.map((userId: string) => {
+                const progressData = room.participants.map((p) => {
+                    const userId = p.id;
                     const prog = room.studentProgress?.[userId];
                     return {
                         id: userId,
-                        name: `Student ${userId.substr(-4)}`,
+                        name: p.name,
                         completed: prog?.completed || false,
                         score: prog?.score || 0,
                         currentQuestionIndex: prog?.currentQuestionIndex ?? -1
@@ -168,11 +169,11 @@ const TeacherRoom: React.FC<TeacherRoomProps> = ({ user, onBack }) => {
 
                                     <button
                                         onClick={() => {
-                                            const histParticipants = room.participants.map(uid => ({
-                                                id: uid,
-                                                name: `Student ${uid.substr(-4)}`,
-                                                score: room.studentProgress?.[uid]?.score || 0,
-                                                ...room.studentProgress?.[uid]
+                                            const histParticipants = room.participants.map((p) => ({
+                                                id: p.id,
+                                                name: p.name,
+                                                score: room.studentProgress?.[p.id]?.score || 0,
+                                                ...room.studentProgress?.[p.id]
                                             }));
                                             setParticipants(histParticipants);
                                             setRoomCode(null);
