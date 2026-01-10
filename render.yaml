@@ -12,7 +12,7 @@ services:
     plan: free
 
   # Frontend Static Site
-  - type: static
+  - type: site
     name: ai-quiz-frontend
     runtime: static
     root: .
