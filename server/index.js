@@ -14,7 +14,7 @@ app.use(express.json());
 
 // Root Route (Friendly Message)
 app.get('/', (req, res) => {
-    res.send('<h1>AI Quiz Generator Backend is Running!</h1><p>Please access the frontend at <a href="http://localhost:3001">http://localhost:3001</a></p>');
+    res.redirect('http://localhost:3001');
 });
 
 // Database Connection (SQLite)
